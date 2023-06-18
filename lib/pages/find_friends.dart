@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_example/models/map_style.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
 
 class FindFriends extends StatefulWidget {
   const FindFriends({Key? key}) : super(key: key);
@@ -22,6 +23,8 @@ class _FindFriendsState extends State<FindFriends> {
 
   final Set<Marker> _markers = {};
   late GoogleMapController _controller;
+  late Location _location;
+  LatLng _myLocation = LatLng(-16.52861868568564, -68.05497049597385);
 
   final List<dynamic> _contacts = [
     {
@@ -71,6 +74,14 @@ class _FindFriendsState extends State<FindFriends> {
   @override
   void initState() {
     super.initState();
+    _location = Location();
+    getCurrentLocation();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -83,6 +94,7 @@ class _FindFriendsState extends State<FindFriends> {
           GoogleMap(
             initialCameraPosition: _kGooglePlex,
             markers: _markers,
+            myLocationEnabled: true, // Habilitar el botón de ubicación actual
             myLocationButtonEnabled: false,
             onMapCreated: (GoogleMapController controller) {
               _controller = controller;
@@ -94,54 +106,59 @@ class _FindFriendsState extends State<FindFriends> {
             left: 20,
             right: 20,
             child: Container(
-                width: MediaQuery.of(context).size.width,
-                height: 120,
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20)),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _contacts.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        _controller.moveCamera(CameraUpdate.newLatLng(
-                            _contacts[index]["position"]));
-                      },
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        margin: const EdgeInsets.only(right: 10),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              _contacts[index]['image'],
-                              width: 60,
+              width: MediaQuery.of(context).size.width,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _contacts.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      _controller.moveCamera(CameraUpdate.newLatLng(
+                        _contacts[index]["position"],
+                      ));
+                    },
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      margin: const EdgeInsets.only(right: 10),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            _contacts[index]['image'],
+                            width: 60,
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          Text(
+                            _contacts[index]["name"],
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(
-                              height: 10,
-                            ),
-                            Text(
-                              _contacts[index]["name"],
-                              style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w600),
-                            )
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                )),
-          )
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           var result = await showDialog(
-              context: context,
-              builder: (BuildContext context) => AddContactDialog());
+            context: context,
+            builder: (BuildContext context) => AddContactDialog(),
+          );
           if (result != null) {
             setState(() {
               _contacts.add(result);
@@ -157,16 +174,27 @@ class _FindFriendsState extends State<FindFriends> {
     Marker marker;
 
     _contacts.forEach((contact) async {
-      marker = Marker(
-        markerId: MarkerId(contact['name']),
-        position: contact['position'],
-        icon: await _getAssetIcon(context, contact['marker'])
-            .then((value) => value),
-        infoWindow: InfoWindow(
-          title: contact['name'],
-          snippet: 'Street 6 . 2min ago',
-        ),
-      );
+      if (contact['name'] == "Yo") {
+        marker = Marker(
+          markerId: MarkerId(contact['name']),
+          position: _myLocation,
+          icon: await _getAssetIcon(context, contact['marker']),
+          infoWindow: InfoWindow(
+            title: contact['name'],
+            snippet: 'Street 6 . 2min ago',
+          ),
+        );
+      } else {
+        marker = Marker(
+          markerId: MarkerId(contact['name']),
+          position: contact['position'],
+          icon: await _getAssetIcon(context, contact['marker']),
+          infoWindow: InfoWindow(
+            title: contact['name'],
+            snippet: 'Street 6 . 2min ago',
+          ),
+        );
+      }
 
       setState(() {
         _markers.add(marker);
@@ -175,7 +203,9 @@ class _FindFriendsState extends State<FindFriends> {
   }
 
   Future<BitmapDescriptor> _getAssetIcon(
-      BuildContext context, String icon) async {
+    BuildContext context,
+    String icon,
+  ) async {
     final Completer<BitmapDescriptor> bitmapIcon =
         Completer<BitmapDescriptor>();
     final ImageConfiguration config =
@@ -192,6 +222,21 @@ class _FindFriendsState extends State<FindFriends> {
     }));
 
     return await bitmapIcon.future;
+  }
+
+  Future<void> getCurrentLocation() async {
+    final hasPermission = await _location.hasPermission();
+    if (hasPermission == PermissionStatus.granted) {
+      final currentLocation = await _location.getLocation();
+      final currentPosition = LatLng(
+        currentLocation.latitude!,
+        currentLocation.longitude!,
+      );
+      setState(() {
+        _myLocation = currentPosition;
+      });
+      _controller.moveCamera(CameraUpdate.newLatLng(_myLocation));
+    }
   }
 }
 
@@ -239,8 +284,6 @@ class _AddContactDialogState extends State<AddContactDialog> {
           onPressed: () {
             var newContact = {
               "name": _nameController.text,
-              "position": LatLng(double.parse(_latController.text),
-                  double.parse(_lngController.text)),
               "marker":
                   'assets/markers/marker-1.png', // Actualiza esto si quieres usar diferentes marcadores
               "image":
