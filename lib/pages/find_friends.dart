@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_maps_example/models/map_style.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import '../models/map_style.dart';
+import 'map_circles.dart';
 
 class FindFriends extends StatefulWidget {
   const FindFriends({Key? key}) : super(key: key);
@@ -17,7 +17,7 @@ class FindFriends extends StatefulWidget {
 
 class _FindFriendsState extends State<FindFriends> {
   static const CameraPosition _kGooglePlex = CameraPosition(
-    target: LatLng(-16.525429484126306, -68.06266893632818),
+    target: LatLng(-16.522539081859808, -68.11143946581194),
     zoom: 14.4746,
   );
 
@@ -153,19 +153,34 @@ class _FindFriendsState extends State<FindFriends> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          var result = await showDialog(
-            context: context,
-            builder: (BuildContext context) => AddContactDialog(),
-          );
-          if (result != null) {
-            setState(() {
-              _contacts.add(result);
-            });
-          }
-        },
-        child: Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () async {
+              var result = await showDialog(
+                context: context,
+                builder: (BuildContext context) => AddContactDialog(),
+              );
+              if (result != null) {
+                setState(() {
+                  _contacts.add(result);
+                });
+              }
+            },
+            child: Icon(Icons.add),
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MapCircles()),
+              );
+            },
+            child: Icon(Icons.map), // Use the appropriate icon for your case
+          ),
+        ],
       ),
     );
   }
@@ -181,7 +196,7 @@ class _FindFriendsState extends State<FindFriends> {
           icon: await _getAssetIcon(context, contact['marker']),
           infoWindow: InfoWindow(
             title: contact['name'],
-            snippet: 'Street 6 . 2min ago',
+            snippet: 'Universidad . Ahora',
           ),
         );
       } else {
@@ -191,7 +206,7 @@ class _FindFriendsState extends State<FindFriends> {
           icon: await _getAssetIcon(context, contact['marker']),
           infoWindow: InfoWindow(
             title: contact['name'],
-            snippet: 'Street 6 . 2min ago',
+            snippet: 'Calle . 2min ago',
           ),
         );
       }

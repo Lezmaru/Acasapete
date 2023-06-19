@@ -4,6 +4,7 @@ import 'package:custom_info_window/custom_info_window.dart';
 import 'models/map_style.dart';
 import 'pages/find_friends.dart';
 import 'pages/map_circles.dart';
+import 'pages/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,6 +12,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const FindFriends(),
+      home: SplashScreen(), // Reemplaza esto con tu SplashScreen
     );
   }
 }
